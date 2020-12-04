@@ -14,3 +14,5 @@ class bean{
     String field;
 }
 ```
+
+有三个使用用例在目录下， 可以非常方便的使用
