@@ -1,22 +1,16 @@
-package com.djx.excelot;
-
+import com.djx.excelot.ExcelImportAndExport;
 import com.djx.excelot.entity.Student;
-import com.djx.excelot.exception.ExcelChanelException;
-import com.djx.excelot.exception.ExcelNullpointExcetion;
 import org.apache.poi.ss.usermodel.Workbook;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class ExcelOTImportTest2 {
+public class ExcelOTImportTest {
 
-    public static void main(String[] args) throws IOException {
-
+    public static void main(String[] args) throws Exception {
 
         List<Student> students = new ArrayList<>();
 
@@ -31,34 +25,11 @@ public class ExcelOTImportTest2 {
         students.add(new Student(3l, "小大", null, new Date(), false, 300.567, 3,"a"));
         students.add(new Student(4l, "小二", 18, new Date(), true, null, 2,"b"));
 
-        for (int i = 0;i < 100000;i++) {
-            students.add(new Student(1l, "小明", 18, new Date(), null, 1000.12, 1, "a"));
-        }
-        // 10w条数据时间测试
-        Long start = System.currentTimeMillis();
-
-
         // 使用
         ExcelImportAndExport<Student> excelUtils = new ExcelImportAndExport<>();
-        Workbook workbook = null;
-        try {
-            workbook = excelUtils.exportExcel(students, Student.class);
-
-        } catch (ExcelNullpointExcetion e){
-            int row = e.getRowIndex();
-            int cell = e.getCellIndex();
-            System.out.println((row + 1) + "行" + (cell + 1) + "不能为空");
-        } catch (ExcelChanelException e){
-            int row = e.getRowIndex();
-            int cell = e.getCellIndex();
-            System.out.println((row + 1) + "行" + (cell + 1) + "列格式错误");
-        } catch (Exception exception) {
-            exception.printStackTrace();
-        }
+        Workbook workbook = excelUtils.exportExcel(students, Student.class);
 
 
-        Long end = System.currentTimeMillis();
-        System.out.println(end-start);
         File file = new File("F:\\student.xlsx");
         FileOutputStream outputStream = new FileOutputStream(file);
         workbook.write(outputStream);
