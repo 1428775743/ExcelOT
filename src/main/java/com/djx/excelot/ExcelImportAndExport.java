@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -21,22 +22,37 @@ import java.util.stream.Collectors;
 
 public class ExcelImportAndExport<T> {
 
-    /**
-     * 将对象 按照注解转换成Excelworkbook
-     * @param objs
-     * @param cls
-     * @return
-     */
-    public Workbook exportExcel(List<T> objs, Class<T> cls) throws Exception {
 
-        Excel excelConfig = (Excel) cls.getAnnotation(Excel.class);
+    private final Excel excelConfig;
 
+    private Workbook workbook;
+
+    private Sheet selectSheet;
+
+    private final Class<T> cls;
+
+    private final List<Excelmode> excelmodeList;
+
+    private int lastIndex = -1;
+
+    public ExcelImportAndExport(Class<T> cls) throws Exception {
+        this.cls = cls;
+        excelConfig = cls.getAnnotation(Excel.class);
 
         if (excelConfig == null) {
             throw new Exception(cls.getName() + "没有@Excel注解");
         }
 
-        List<Excelmode> excelmodeList = handleCls(cls);
+        excelmodeList = this.handleCls(cls);
+    }
+
+    /**
+     * 将对象 按照注解转换成Excelworkbook
+     * @param objs
+     * @return
+     */
+    public Workbook exportExcel(List<T> objs) throws Exception {
+
         // 配置参数
         ExcelEnum excelVersion = excelConfig.version();
         String sheetName = excelConfig.sheetName();
@@ -94,19 +110,41 @@ public class ExcelImportAndExport<T> {
         return workbook;
     }
 
-    public List<T> importExcel(InputStream inputStream, String filename, Class<T> cls) throws Exception {
+    /**
+     * 解析excel
+     * @param inputStream
+     * @param filename
+     * @throws Exception
+     */
+    public void importExcel(InputStream inputStream, String filename) throws Exception {
 
-        Excel excelConfig = (Excel) cls.getAnnotation(Excel.class);
-        List<Excelmode> excelmodeList = handleCls(cls);
+        workbook = getWorkbook(inputStream, filename);
+        selectSheet = workbook.getSheet(excelConfig.sheetName());
+        // 默认第一个
+        if (selectSheet == null) {
+            selectSheet = workbook.getSheetAt(0);
+        }
+    }
 
-        Workbook workbook = getWorkbook(inputStream, filename);
-        Sheet sheet = workbook.getSheet(excelConfig.sheetName());
+    public void setSheet(String name) {
+        selectSheet = workbook.getSheet(name);
+    }
 
+    public void setSheet(int index) {
+        selectSheet = workbook.getSheetAt(index);
+    }
+
+    /**
+     * 批量导出数据对象， 不符合条件就会停 抛出异常
+     * @return
+     * @throws Exception ExcelNullpointExcetion
+     */
+    public List<T> getAllList() throws ExcelNullpointExcetion, ExcelChanelException {
+        Sheet sheet = selectSheet;
         if (sheet == null) {
-            throw  new Exception("sheet名设置不正确");
+            throw  new RuntimeException("sheet未选择");
         }
 
-        Map<String, Integer> lie = new HashMap<>();
         Row row = sheet.getRow(sheet.getFirstRowNum());
 
         Map<Integer, Excelmode> indexmap = new HashMap<>();
@@ -129,7 +167,16 @@ public class ExcelImportAndExport<T> {
             if (rown.getRowNum() == sheet.getFirstRowNum()) {
                 continue;
             }
-            T obj = cls.newInstance();
+            T obj = null;
+            try {
+                obj = cls.newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+            if (stringEmpty(rown.getCell(1).toString())){
+                break;
+            }
 
             for (Cell cell: rown) {
 
@@ -141,7 +188,10 @@ public class ExcelImportAndExport<T> {
 
                 try {
                     excelmode.setmethod.invoke(obj, getCellValue(excelmode.annotation, cell, excelmode.fieldcls));
+                } catch (ExcelNullpointExcetion e){
+                    throw e;
                 } catch (Exception e) {
+                    e.fillInStackTrace();
                     throw new ExcelChanelException(cell.getRowIndex(), cell.getColumnIndex());
                 }
 
@@ -151,7 +201,76 @@ public class ExcelImportAndExport<T> {
         return objs;
     }
 
-    private Object getCellValue(Annotation annotation, Cell cell, Class cls) throws Exception {
+    /**
+     * 获取当前行对象
+     * @param index
+     * @return
+     * @throws ExcelChanelException
+     * @throws ExcelNullpointExcetion
+     */
+    public T getObjByRow(int index) throws ExcelChanelException, ExcelNullpointExcetion {
+
+        Sheet sheet = selectSheet;
+        if (sheet == null) {
+            throw  new RuntimeException("sheet未选择");
+        }
+        T obj = null;
+        try {
+            obj = cls.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            return obj;
+        }
+        Row rown = sheet.getRow(index);
+
+        for (Excelmode excelmode: excelmodeList) {
+
+            Cell cell = rown.getCell(excelmode.index);
+            try {
+
+                excelmode.setmethod.invoke(obj, getCellValue(excelmode.annotation, cell, excelmode.fieldcls));
+            } catch (ExcelNullpointExcetion e){
+                throw e;
+            } catch (Exception e) {
+                throw new ExcelChanelException(cell.getRowIndex(), cell.getColumnIndex());
+            }
+        }
+        return obj;
+    }
+
+    public int getLastIndex() {
+        return selectSheet.getLastRowNum();
+    }
+
+    /**
+     * 获取最后一行的index
+     * 注 ：最后一个行默认为所有字段都不存在值的行
+     * @return
+     */
+    public int getNotNullLastIndex() {
+
+        if (lastIndex == -1) {
+            Sheet sheet = selectSheet;
+            start:for (Row rown : sheet) {
+
+                for (Excelmode excelmode: excelmodeList) {
+
+                    Cell cell = rown.getCell(excelmode.index);
+                    if (cell != null && !stringEmpty(cell.toString())) {
+                        continue start;
+                    }
+                }
+                lastIndex = rown.getRowNum();
+                break;
+            }
+            if (lastIndex == -1) {
+                lastIndex = sheet.getLastRowNum();
+            }
+        }
+        return lastIndex;
+    }
+
+    private Object getCellValue(Annotation annotation, Cell cell, Class cls) throws ExcelNullpointExcetion, ParseException {
 
         String value = cell.toString();
 

@@ -13,7 +13,7 @@ import java.util.List;
 
 public class ExcelOTImportTest2 {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
 
 
         List<Student> students = new ArrayList<>();
@@ -37,10 +37,10 @@ public class ExcelOTImportTest2 {
 
 
         // 使用
-        ExcelImportAndExport<Student> excelUtils = new ExcelImportAndExport<>();
+        ExcelImportAndExport<Student> excelUtils = new ExcelImportAndExport<>(Student.class);
         Workbook workbook = null;
         try {
-            workbook = excelUtils.exportExcel(students, Student.class);
+            workbook = excelUtils.exportExcel(students);
 
         } catch (ExcelNullpointExcetion e){
             int row = e.getRowIndex();

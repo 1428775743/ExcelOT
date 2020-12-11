@@ -7,7 +7,7 @@ import java.util.Date;
 
 @Excel(
         name = "学生统计数据表",
-        sheetName = "sheet1"
+        sheetName = "Sheet1"
 )
 public class Student {
 

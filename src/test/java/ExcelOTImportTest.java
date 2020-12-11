@@ -26,8 +26,8 @@ public class ExcelOTImportTest {
         students.add(new Student(4l, "小二", 18, new Date(), true, null, 2,"b"));
 
         // 使用
-        ExcelImportAndExport<Student> excelUtils = new ExcelImportAndExport<>();
-        Workbook workbook = excelUtils.exportExcel(students, Student.class);
+        ExcelImportAndExport<Student> excelUtils = new ExcelImportAndExport<>(Student.class);
+        Workbook workbook = excelUtils.exportExcel(students);
 
 
         File file = new File("F:\\student.xlsx");

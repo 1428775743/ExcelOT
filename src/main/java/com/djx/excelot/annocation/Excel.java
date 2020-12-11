@@ -15,5 +15,5 @@ public @interface Excel {
 
     ExcelEnum version() default ExcelEnum.V2007;
 
-    String sheetName();
+    String sheetName() default "";
 }
