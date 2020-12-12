@@ -260,7 +260,7 @@ public class ExcelImportAndExport<T> {
                         continue start;
                     }
                 }
-                lastIndex = rown.getRowNum();
+                lastIndex = rown.getRowNum() - 1;
                 break;
             }
             if (lastIndex == -1) {
@@ -272,7 +272,7 @@ public class ExcelImportAndExport<T> {
 
     private Object getCellValue(Annotation annotation, Cell cell, Class cls) throws ExcelNullpointExcetion, ParseException {
 
-        String value = cell.toString();
+        String value = cell == null?"":cell.toString();
 
         if (annotation.annotationType().equals(CellDate.class)) {
            CellDate ac = (CellDate)annotation;
