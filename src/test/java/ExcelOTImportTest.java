@@ -19,19 +19,15 @@ public class ExcelOTImportTest {
         students.add(new Student(3l, "小国", 19, new Date(), true, 300.567, null,"c"));
         students.add(new Student(4l, "小太", 18, null, false, 400.1, 2,null));
 
-        // 添加测试用例
-        students.add(new Student(null, null, null, null, null, null, null,"c"));
-        students.add(new Student(null, "小放", 19, new Date(), false, 200.0078, 2,null));
-        students.add(new Student(3l, "小大", null, new Date(), false, 300.567, 3,"a"));
-        students.add(new Student(4l, "小二", 18, new Date(), true, null, 2,"b"));
 
         // 使用
         ExcelImportAndExport<Student> excelUtils = new ExcelImportAndExport<>(Student.class);
         Workbook workbook = excelUtils.exportExcel(students);
-
-
+        excelUtils.insertObject(5, new Student(3l, "小大", null, new Date(), false, 300.567, 3,"a"));
+        workbook = excelUtils.workbook();
         File file = new File("F:\\student.xlsx");
         FileOutputStream outputStream = new FileOutputStream(file);
         workbook.write(outputStream);
+        outputStream.close();
     }
 }

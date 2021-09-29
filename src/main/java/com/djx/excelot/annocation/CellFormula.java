@@ -5,19 +5,17 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * 计算公式
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface CellValue {
+public @interface CellFormula {
 
     String name();
 
     int index();
 
-    boolean isMust() default false;
+    String fomula();
 
-    String prefix() default "";
-
-    String suffix() default "";
-
-    int maxLen() default -1;
 }

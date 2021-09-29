@@ -4,7 +4,10 @@ import com.djx.excelot.annocation.*;
 import com.djx.excelot.annocation.CellValue;
 import com.djx.excelot.constants.ExcelEnum;
 import com.djx.excelot.exception.ExcelChanelException;
+import com.djx.excelot.exception.ExcelDateParseException;
 import com.djx.excelot.exception.ExcelNullpointExcetion;
+import com.djx.excelot.exception.ExcelOutLenException;
+import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
@@ -14,7 +17,7 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -54,12 +57,14 @@ public class ExcelImportAndExport<T> {
     public Workbook exportExcel(List<T> objs) throws Exception {
 
         // 配置参数
-        ExcelEnum excelVersion = excelConfig.version();
         String sheetName = excelConfig.sheetName();
 
-        Workbook workbook = getWorkbook(excelVersion);
-        Sheet sheet = workbook.createSheet(sheetName);
-
+        if (workbook == null) {
+            ExcelEnum excelVersion = excelConfig.version();
+            workbook = getWorkbook(excelVersion);
+        }
+        selectSheet = workbook.createSheet(sheetName);
+        Sheet sheet = selectSheet;
         Row rowhead = sheet.createRow(0);
         // 列名
         for (Excelmode excelmode: excelmodeList) {
@@ -69,45 +74,84 @@ public class ExcelImportAndExport<T> {
 
         for (int i = 0;i < objs.size(); i++) {
             T obj = objs.get(i);
-            Row row = sheet.createRow(i+1);
-
-            for (Excelmode excelmode: excelmodeList) {
-                Cell cell = row.createCell(excelmode.index);
-                Annotation annotation = excelmode.annotation;
-
-                try {
-                    if (annotation.annotationType().equals(CellValue.class)) {
-                        cell.setCellValue(cellValue((CellValue) annotation, excelmode.method.invoke(objs.get(i))));
-                        continue;
-                    }
-
-                    if (annotation.annotationType().equals(CellSelect.class)) {
-                        cell.setCellValue(cellSelect((CellSelect) annotation, excelmode.method.invoke(objs.get(i))));
-                        continue;
-                    }
-
-                    if (annotation.annotationType().equals(CellDouble.class)) {
-                        cell.setCellValue(cellDouble((CellDouble) annotation, excelmode.method.invoke(objs.get(i))));
-                        continue;
-                    }
-
-                    if (annotation.annotationType().equals(CellDate.class)) {
-                        cell.setCellValue(cellDate((CellDate) annotation, excelmode.method.invoke(objs.get(i))));
-                        continue;
-                    }
-
-                    if (annotation.annotationType().equals(CellBoolean.class)) {
-                        cell.setCellValue(cellBoolean((CellBoolean) annotation, excelmode.method.invoke(objs.get(i))));
-                        continue;
-                    }
-                } catch (Exception e) {
-                    throw new ExcelChanelException(cell.getRowIndex(), cell.getColumnIndex());
-                }
-
-            }
+            setCellValueMain(i+1, obj, sheet);
         }
 
         return workbook;
+    }
+
+
+    public void insertObject(int index, T obj) throws ExcelChanelException {
+        if (selectSheet == null) {
+            if (workbook == null) {
+                ExcelEnum excelVersion = excelConfig.version();
+                workbook = getWorkbook(excelVersion);
+            }
+            String sheetName = excelConfig.sheetName();
+            selectSheet = workbook.createSheet(sheetName);
+            setHeadTitle();
+        }
+
+        Sheet sheet = selectSheet;
+        setCellValueMain(index, obj, sheet);
+    }
+
+    public Workbook workbook() {
+        return this.workbook;
+    }
+
+    private void setHeadTitle() {
+        Row rowhead = selectSheet.createRow(0);
+        // 列名
+        for (Excelmode excelmode: excelmodeList) {
+            Cell cell = rowhead.createCell(excelmode.index);
+            cell.setCellValue(excelmode.name);
+        }
+    }
+
+    private void setCellValueMain(int index, T obj, Sheet sheet) throws ExcelChanelException {
+        Row row = sheet.createRow(index);
+
+        for (Excelmode excelmode: excelmodeList) {
+            Cell cell = row.createCell(excelmode.index);
+            Annotation annotation = excelmode.annotation;
+
+            try {
+                if (annotation.annotationType().equals(CellValue.class)) {
+                    cell.setCellValue(cellValue((CellValue) annotation, excelmode.method.invoke(obj)));
+                    continue;
+                }
+
+                if (annotation.annotationType().equals(CellSelect.class)) {
+                    cell.setCellValue(cellSelect((CellSelect) annotation, excelmode.method.invoke(obj)));
+                    continue;
+                }
+
+                if (annotation.annotationType().equals(CellDouble.class)) {
+                    cell.setCellValue(cellDouble((CellDouble) annotation, excelmode.method.invoke(obj)));
+                    continue;
+                }
+
+                if (annotation.annotationType().equals(CellDate.class)) {
+                    cell.setCellValue(cellDate((CellDate) annotation, excelmode.method.invoke(obj)));
+                    continue;
+                }
+
+                if (annotation.annotationType().equals(CellBoolean.class)) {
+                    cell.setCellValue(cellBoolean((CellBoolean) annotation, excelmode.method.invoke(obj)));
+                    continue;
+                }
+                if (annotation.annotationType().equals(CellFormula.class)) {
+                    CellFormula cellFormula = (CellFormula) annotation;
+                    cell.setCellFormula(cellFormula.fomula().replaceAll("#index", (index+1)+""));
+                    continue;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new ExcelChanelException(cell.getRowIndex(), cell.getColumnIndex());
+            }
+
+        }
     }
 
     /**
@@ -137,9 +181,10 @@ public class ExcelImportAndExport<T> {
     /**
      * 批量导出数据对象， 不符合条件就会停 抛出异常
      * @return
+     * @throws ExcelDateParseException
      * @throws Exception ExcelNullpointExcetion
      */
-    public List<T> getAllList() throws ExcelNullpointExcetion, ExcelChanelException {
+    public List<T> getAllList() throws ExcelNullpointExcetion, ExcelChanelException, ExcelOutLenException, ExcelDateParseException {
         Sheet sheet = selectSheet;
         if (sheet == null) {
             throw  new RuntimeException("sheet未选择");
@@ -188,9 +233,11 @@ public class ExcelImportAndExport<T> {
 
                 try {
                     excelmode.setmethod.invoke(obj, getCellValue(excelmode.annotation, cell, excelmode.fieldcls));
-                } catch (ExcelNullpointExcetion e){
+                } catch (ExcelNullpointExcetion | ExcelOutLenException e){
                     throw e;
-                } catch (Exception e) {
+                } catch (ExcelDateParseException e){
+                    throw e;
+                }catch (Exception e) {
                     e.fillInStackTrace();
                     throw new ExcelChanelException(cell.getRowIndex(), cell.getColumnIndex());
                 }
@@ -207,8 +254,9 @@ public class ExcelImportAndExport<T> {
      * @return
      * @throws ExcelChanelException
      * @throws ExcelNullpointExcetion
+     * @throws ExcelDateParseException
      */
-    public T getObjByRow(int index) throws ExcelChanelException, ExcelNullpointExcetion {
+    public T getObjByRow(int index) throws ExcelChanelException, ExcelNullpointExcetion, ExcelOutLenException, ExcelDateParseException {
 
         Sheet sheet = selectSheet;
         if (sheet == null) {
@@ -226,12 +274,15 @@ public class ExcelImportAndExport<T> {
         for (Excelmode excelmode: excelmodeList) {
 
             Cell cell = rown.getCell(excelmode.index);
+            if (cell == null) {
+                continue;
+            }
             try {
-
                 excelmode.setmethod.invoke(obj, getCellValue(excelmode.annotation, cell, excelmode.fieldcls));
-            } catch (ExcelNullpointExcetion e){
+            } catch (ExcelNullpointExcetion | ExcelOutLenException | ExcelDateParseException e){
                 throw e;
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new ExcelChanelException(cell.getRowIndex(), cell.getColumnIndex());
             }
         }
@@ -270,28 +321,43 @@ public class ExcelImportAndExport<T> {
         return lastIndex;
     }
 
-    private Object getCellValue(Annotation annotation, Cell cell, Class cls) throws ExcelNullpointExcetion, ParseException {
+    private Object getCellValue(Annotation annotation, Cell cell, Class cls) throws ExcelNullpointExcetion, ParseException, ExcelOutLenException, ExcelDateParseException {
 
-        String value = cell == null?"":cell.toString();
+        String value = cell == null?"":cell.toString().trim();
 
         if (annotation.annotationType().equals(CellDate.class)) {
-           CellDate ac = (CellDate)annotation;
-           if (stringEmpty(value)) {
-               if (ac.isMust()) {
-                   throw new ExcelNullpointExcetion(cell.getRowIndex(), cell.getColumnIndex());
-               }
+            CellDate ac = (CellDate)annotation;
+            if (stringEmpty(value)) {
+                if (ac.isMust()) {
+                    throw new ExcelNullpointExcetion(cell.getRowIndex(), cell.getColumnIndex());
+                }
                 return null;
-           }
-           if (!stringEmpty(ac.prefix())) {
-               value = value.substring(ac.prefix().length());
-           }
-           if (!stringEmpty(ac.suffix())) {
-               value = value.substring(0, value.length()-ac.suffix().length());
-           }
+            }
 
-           SimpleDateFormat f = new SimpleDateFormat(ac.formatStr());
 
-           return f.parse(value);
+            if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC && HSSFDateUtil.isCellDateFormatted(cell)) {
+                return cell.getDateCellValue();
+            }
+
+
+            if (!stringEmpty(ac.prefix())) {
+                value = value.substring(ac.prefix().length());
+            }
+            if (!stringEmpty(ac.suffix())) {
+                value = value.substring(0, value.length()-ac.suffix().length());
+            }
+
+            SimpleDateFormat f = new SimpleDateFormat(ac.formatStr());
+
+            Date data = null;
+
+            try {
+                data = f.parse(value);
+            } catch (ParseException e) {
+                throw new ExcelDateParseException(cell.getRowIndex(), cell.getColumnIndex());
+            }
+
+            return data;
         }
 
         if (annotation.annotationType().equals(CellBoolean.class)) {
@@ -369,6 +435,18 @@ public class ExcelImportAndExport<T> {
 
         if (annotation.annotationType().equals(CellValue.class)) {
             CellValue ac = (CellValue)annotation;
+
+            if (ac.maxLen() != -1) {
+                if (value.length() > ac.maxLen()) {
+
+                    throw  new ExcelOutLenException(cell.getRowIndex(), cell.getColumnIndex(), ac.maxLen());
+                }
+            }
+            DecimalFormat df = new DecimalFormat("#");
+            if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+                value = String.valueOf(df.format(cell.getNumericCellValue()));
+            }
+
             if (!stringEmpty(ac.prefix())) {
                 value = value.substring(ac.prefix().length());
             }
@@ -476,6 +554,18 @@ public class ExcelImportAndExport<T> {
                 excelmode.name = cellBoolean.name();
                 excelmode.annotation = cellBoolean;
                 excelmode.index = cellBoolean.index();
+                excelmode.fieldcls = field.getType();
+                excelmode.method = cls.getMethod(getFieldString(field));
+                excelmode.setmethod = cls.getMethod(setFieldString(field), field.getType());
+                list.add(excelmode);
+                continue;
+            }
+
+            CellFormula cellFormula = field.getAnnotation(CellFormula.class);
+            if (cellFormula != null) {
+                excelmode.name = cellFormula.name();
+                excelmode.annotation = cellFormula;
+                excelmode.index = cellFormula.index();
                 excelmode.fieldcls = field.getType();
                 excelmode.method = cls.getMethod(getFieldString(field));
                 excelmode.setmethod = cls.getMethod(setFieldString(field), field.getType());

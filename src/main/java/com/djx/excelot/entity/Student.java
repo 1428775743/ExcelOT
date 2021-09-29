@@ -16,7 +16,7 @@ public class Student {
     @CellValue(name = "名字",index = 0)
     private String name;
 
-    @CellValue(name = "年龄",index = 1,suffix = "岁")
+    @CellValue(name = "年龄",index = 1)
     private Integer age;
 
     @CellDate(name = "日期",index = 2,formatStr = "yyyy-MM-dd hh:mm:ss")
@@ -44,6 +44,9 @@ public class Student {
     )
     private String select2;
 
+    @CellFormula(name = "年收比", fomula = "=round(E#index/B#index,2)", index = 7)
+    private Double testFormula;
+
     public Student() {
     }
 
@@ -56,6 +59,14 @@ public class Student {
         this.balance = balance;
         this.select = select;
         this.select2 = select2;
+    }
+
+    public Double getTestFormula() {
+        return testFormula;
+    }
+
+    public void setTestFormula(Double testFormula) {
+        this.testFormula = testFormula;
     }
 
     public Long getId() {
