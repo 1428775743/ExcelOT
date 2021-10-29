@@ -307,11 +307,11 @@ public class ExcelImportAndExport<T> {
                 for (Excelmode excelmode: excelmodeList) {
 
                     Cell cell = rown.getCell(excelmode.index);
-                    if (cell != null && !stringEmpty(cell.toString())) {
+                    if (cell != null && !stringEmpty(cell.toString().trim())) {
+                        lastIndex = rown.getRowNum();
                         continue start;
                     }
                 }
-                lastIndex = rown.getRowNum() - 1;
                 break;
             }
             if (lastIndex == -1) {
