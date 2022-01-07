@@ -53,6 +53,7 @@ public class Student {
     suffix 后缀
     isMust 是否必须 如果对象为空会抛出异常 可以用异常捕获知道哪一行
     index cell的列号
+    maxLen 最大长度
     
 *这个注解的属性以下注解全都有下面的注解就省掉了
 
