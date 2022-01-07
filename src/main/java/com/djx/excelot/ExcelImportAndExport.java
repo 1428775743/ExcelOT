@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ExcelImportAndExport<T> {
-
+    private Integer headLen = 1;
 
     private final Excel excelConfig;
 
@@ -115,7 +115,9 @@ public class ExcelImportAndExport<T> {
         for (Excelmode excelmode: excelmodeList) {
             Cell cell = row.createCell(excelmode.index);
             Annotation annotation = excelmode.annotation;
-
+            if (excelmode.widthAnnotation != null) {
+                sheet.setColumnWidth(excelmode.index, excelmode.widthAnnotation.width());
+            }
             try {
                 if (annotation.annotationType().equals(CellValue.class)) {
                     cell.setCellValue(cellValue((CellValue) annotation, excelmode.method.invoke(obj)));
@@ -293,6 +295,10 @@ public class ExcelImportAndExport<T> {
         return selectSheet.getLastRowNum();
     }
 
+    public void setHeadLen(int headLen) {
+        this.headLen = headLen;
+    }
+
     /**
      * 获取最后一行的index
      * 注 ：最后一个行默认为所有字段都不存在值的行
@@ -300,19 +306,28 @@ public class ExcelImportAndExport<T> {
      */
     public int getNotNullLastIndex() {
 
+        // 头长计数器
+        int times = 0;
+
         if (lastIndex == -1) {
             Sheet sheet = selectSheet;
             start:for (Row rown : sheet) {
-
+                times ++;
                 for (Excelmode excelmode: excelmodeList) {
 
                     Cell cell = rown.getCell(excelmode.index);
+                    if (cell != null) {
+                        String s = cell.toString().trim();
+                    }
+
                     if (cell != null && !stringEmpty(cell.toString().trim())) {
                         lastIndex = rown.getRowNum();
                         continue start;
                     }
                 }
-                break;
+                if (times > headLen) {
+                    break;
+                }
             }
             if (lastIndex == -1) {
                 lastIndex = sheet.getLastRowNum();
@@ -344,7 +359,7 @@ public class ExcelImportAndExport<T> {
                 value = value.substring(ac.prefix().length());
             }
             if (!stringEmpty(ac.suffix())) {
-                value = value.substring(0, value.length()-ac.suffix().length());
+                value = value.substring(0, value.length() - ac.suffix().length());
             }
 
             SimpleDateFormat f = new SimpleDateFormat(ac.formatStr());
@@ -412,6 +427,14 @@ public class ExcelImportAndExport<T> {
 
         if (annotation.annotationType().equals(CellSelect.class)) {
             CellSelect ac = (CellSelect)annotation;
+
+            if (stringEmpty(value)) {
+                if (ac.isMust()) {
+                    throw new ExcelNullpointExcetion(cell.getRowIndex(), cell.getColumnIndex());
+                }
+                return null;
+            }
+
             if (!stringEmpty(ac.prefix())) {
                 value = value.substring(ac.prefix().length());
             }
@@ -419,11 +442,18 @@ public class ExcelImportAndExport<T> {
                 value = value.substring(0, value.length()-ac.suffix().length());
             }
 
+            boolean toKey = false;
+
             for (int i = 0;i < ac.values().length; i++) {
                 if (value.equals(ac.values()[i])) {
                     value = ac.keys()[i];
+                    toKey = true;
                     break;
                 }
+            }
+
+            if (!toKey) {
+                return null;
             }
 
             if (cls.equals(Integer.class)) {
@@ -435,6 +465,13 @@ public class ExcelImportAndExport<T> {
 
         if (annotation.annotationType().equals(CellValue.class)) {
             CellValue ac = (CellValue)annotation;
+
+            if (stringEmpty(value)) {
+                if (ac.isMust()) {
+                    throw new ExcelNullpointExcetion(cell.getRowIndex(), cell.getColumnIndex());
+                }
+                return null;
+            }
 
             if (ac.maxLen() != -1) {
                 if (value.length() > ac.maxLen()) {
@@ -502,6 +539,7 @@ public class ExcelImportAndExport<T> {
         for (Field field: fields) {
             Excelmode excelmode = new Excelmode();
             CellValue cellValue = field.getAnnotation(CellValue.class);
+            excelmode.widthAnnotation = field.getAnnotation(CellWidth.class);
             if (cellValue != null) {
                 excelmode.name = cellValue.name();
                 excelmode.annotation = cellValue;
@@ -728,6 +766,8 @@ public class ExcelImportAndExport<T> {
         int index;
 
         Annotation annotation;
+
+        CellWidth widthAnnotation;
 
         @Override
         public String toString() {
