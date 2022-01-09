@@ -2,6 +2,7 @@ package com.djx.excelot.entity;
 
 import com.djx.excelot.annocation.*;
 import com.djx.excelot.constants.ExcelEnum;
+import lombok.Data;
 
 import java.util.Date;
 
@@ -9,7 +10,22 @@ import java.util.Date;
         name = "学生统计数据表",
         sheetName = "Sheet1"
 )
+@Data
 public class Student {
+
+    public Student() {
+    }
+
+    public Student(Long id, String name, Integer age, Date date, Boolean isDel, Double balance, Integer select, String select2) {
+        this.id = id;
+        this.name = name;
+        this.age = age;
+        this.date = date;
+        this.isDel = isDel;
+        this.balance = balance;
+        this.select = select;
+        this.select2 = select2;
+    }
 
     private Long id;
 
@@ -71,108 +87,10 @@ public class Student {
     private String select2;
 
     /**
-     * 计算 e/b 的值 就是计算    下标是4(收入) / 下标是1(年龄) 的值 保留两位小数点
+     * Formula 填excel公式进
+     * 下面这个就是 计算 e/b 的值 就是计算    下标是4(收入) / 下标是1(年龄) 的值 保留两位小数点
      */
     @CellFormula(name = "年收比", fomula = "=round(E#index/B#index,2)", index = 7)
     private Double testFormula;
 
-    public Student() {
-    }
-
-    public Student(Long id, String name, Integer age, Date date, Boolean isDel, Double balance, Integer select, String select2) {
-        this.id = id;
-        this.name = name;
-        this.age = age;
-        this.date = date;
-        this.isDel = isDel;
-        this.balance = balance;
-        this.select = select;
-        this.select2 = select2;
-    }
-
-    public Double getTestFormula() {
-        return testFormula;
-    }
-
-    public void setTestFormula(Double testFormula) {
-        this.testFormula = testFormula;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
-    public Boolean getIsDel() {
-        return isDel;
-    }
-
-    public void setIsDel(Boolean del) {
-        isDel = del;
-    }
-
-    public Double getBalance() {
-        return balance;
-    }
-
-    public void setBalance(Double balance) {
-        this.balance = balance;
-    }
-
-    public Integer getSelect() {
-        return select;
-    }
-
-    public void setSelect(Integer select) {
-        this.select = select;
-    }
-
-    public String getSelect2() {
-        return select2;
-    }
-
-    public void setSelect2(String select2) {
-        this.select2 = select2;
-    }
-
-    @Override
-    public String toString() {
-        return "Student{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", age=" + age +
-                ", date=" + date +
-                ", isDel=" + isDel +
-                ", balance=" + balance +
-                ", select=" + select +
-                ", select2='" + select2 + '\'' +
-                '}';
-    }
 }
