@@ -41,6 +41,10 @@ public class Student {
     private String select2;
 ```
 
+@Excel 一定要加
+    
+    sheetName 属性 excel里面可能会有很多sheet sheetName设置了就去取对应的 不设置默认取第一个
+
 注意属性field 基本数据类型 暂时只支持包装类型
 
 @CellValue 通用注解
