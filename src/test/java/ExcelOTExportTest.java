@@ -28,8 +28,11 @@ public class ExcelOTExportTest {
         for (int i = 1; i <= excelUtils.getNotNullLastIndex(); i++) {
             Student student = null;
             try {
-                student = excelUtils.getObjByRow(2);
+                student = excelUtils.getObjByRow(i);
             } catch (ExcelDateParseException e) {
+
+                excelUtils.getColumnName(e.getCellIndex());
+
                 System.out.println("第" + (e.getRowIndex() + 1) + "行、第" + (e.getCellIndex() + 1) + "列格式异常 请使用标准格式例：2020-10-10（表格设置单元格格式中选择日期）");
                 continue;
             } catch (ExcelChanelException e) {

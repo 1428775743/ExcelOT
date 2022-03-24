@@ -291,6 +291,24 @@ public class ExcelImportAndExport<T> {
         return obj;
     }
 
+    /**
+     * 下标获取字段名
+     * @param cellIndex
+     * @return
+     */
+    public String getColumnName(int cellIndex) {
+
+        for (Excelmode excelmode: excelmodeList) {
+
+            if (cellIndex == excelmode.index) {
+
+                return excelmode.name;
+            }
+        }
+
+        return "";
+    }
+
     public int getLastIndex() {
         return selectSheet.getLastRowNum();
     }
@@ -703,8 +721,27 @@ public class ExcelImportAndExport<T> {
 
         int fied = cellDouble.fixed();
 
-        if (obj instanceof Double || obj instanceof Float) {
+        if (obj instanceof Double) {
+
+            Double d = (Double) obj;
+
+            if (d.isNaN() || d.isInfinite()) {
+                return "";
+            }
+
             value = String.format("%."+fied+"f", obj);
+        }
+
+        if (obj instanceof Float) {
+
+            Float d = (Float) obj;
+
+            if (d.isNaN() || d.isInfinite()) {
+                return "";
+            }
+
+            value = String.format("%."+fied+"f", obj);
+
         }
 
         return prefix + value + suffix;
