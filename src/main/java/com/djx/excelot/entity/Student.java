@@ -32,25 +32,25 @@ public class Student {
     /**
      * value 支持绝大多数常用类型 都可以直接显示
      */
-    @CellWidth(width = 150)
+    @CellWidth(width = 1500)
     @CellValue(name = "名字",index = 0)
     private String name;
 
     /**
      * value 支持绝大多数常用类型 都可以直接显示
      */
-    @CellWidth(width = 50)
+    @CellWidth(width = 500)
     @CellValue(name = "年龄",index = 1)
     private Integer age;
 
-    @CellWidth(width = 250)
+    @CellWidth(width = 2500)
     @CellDate(name = "日期",index = 2,formatStr = "yyyy-MM-dd hh:mm:ss")
     private Date date;
 
     /**
      * boolean类型 需要在excel变成其他值
      */
-    @CellWidth(width = 50)
+    @CellWidth(width = 500)
     @CellBoolean(name = "是否删除",index = 3,tureValue = "是", falseValue = "否")
     private Boolean isDel;
 
@@ -77,7 +77,7 @@ public class Student {
     /**
      * 枚举类型 可以使用字符串
      */
-    @CellWidth(width = 100)
+    @CellWidth(width = 1000 )
     @CellSelect(
             name = "选择2",
             index = 6,

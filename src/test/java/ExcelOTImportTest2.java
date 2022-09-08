@@ -29,10 +29,10 @@ public class ExcelOTImportTest2 {
         students.add(new Student(3l, "小大", null, new Date(), false, 300.567, 3,"a"));
         students.add(new Student(4l, "小二", 18, new Date(), true, null, 2,"b"));
 
-        for (int i = 0;i < 100000;i++) {
+        for (int i = 0;i < 400000;i++) {
             students.add(new Student(1l, "小明", 18, new Date(), null, 1000.12, 1, "a"));
         }
-        // 10w条数据时间测试
+        // 100w条数据时间测试
         Long start = System.currentTimeMillis();
 
 

@@ -48,6 +48,6 @@ public class ExcelOTExportTest {
             list.add(student);
         }
 
-        System.out.println(list);
+        System.out.println(list.size());
     }
 }
